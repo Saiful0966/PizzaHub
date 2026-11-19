@@ -1,6 +1,7 @@
 import React from "react";
 import { Flame, Star, ShieldCheck, Headphones } from "lucide-react";
 
+
 const HeroBanner = () => {
   const features = [
     {
@@ -79,5 +80,7 @@ const HeroBanner = () => {
     </section>
   );
 };
+
+
 
 export default HeroBanner;
