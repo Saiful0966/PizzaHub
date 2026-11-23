@@ -1,11 +1,12 @@
+
 "use client";
 
 import { useState } from "react";
+// কার্টে যুক্ত করার পর /cart পেজে নিতে useRouter ব্যবহার করা হয়েছে
+import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
 import { addToCartStorage } from "@/lib/cart";
-
-
 
 interface MenuDetailsActionsProps {
   item: {
@@ -18,46 +19,52 @@ interface MenuDetailsActionsProps {
 }
 
 export default function MenuDetailsActions({ item }: MenuDetailsActionsProps) {
-  const [quantity, setQuantity] = useState(1);
+  const router = useRouter();
 
+  // সিলেক্টেড কোয়ান্টিটি স্টেট (ডিফল্ট ১)
+  const [quantity, setQuantity] = useState<number>(1);
+
+  // ডেটাবেজে title বা name যে ফিল্ডেই নাম থাকুক তা নেওয়া হচ্ছে
+  const itemTitle = item.title || item.name || "Menu Item";
+
+  // কোয়ান্টিটি ১-এর নিচে নামতে না দেওয়ার লজিক
   const decreaseQty = () => {
     setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
   };
 
+  // কোয়ান্টিটি ১ করে বাড়ানোর লজিক
   const increaseQty = () => {
     setQuantity((prev) => prev + 1);
   };
 
-  // const handleAddToCart = () => {
-  //   const itemName = item.title || item.name || "Menu Item";
-  //   toast.success(`${quantity}x ${itemName} added to cart!`);
-  // };
+  // localStorage-এ সেভ করে টোস্ট দেখানো এবং /cart পেজে রিডাইরেক্ট করা
+  const handleAddToCart = () => {
+    addToCartStorage(
+      {
+        _id: item._id,
+        name: itemTitle,
+        price: Number(item.price || 0),
+        image: item.image,
+      },
+      quantity
+    );
 
-   const itemTitle = item.title || item.name || "Menu Item";
-    const handleAddToCart = () => {
-  addToCartStorage(
-    {
-      _id: item._id,
-      name: itemTitle,
-      price: Number(item.price || 0),
-      image: item.image,
-    },
-    quantity
-  );
-  toast.success(`${quantity}x ${itemTitle} added to cart!`);
-};
+    toast.success("Add to Cart Successful");
+    router.push("/cart");
+  };
 
   return (
     <div className="mt-7">
       <p className="mb-2.5 text-sm font-bold text-gray-900">Quantity</p>
 
       <div className="flex flex-wrap items-center gap-4">
+        {/* - / quantity / + কন্ট্রোল বক্স */}
         <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-2 py-1.5 shadow-2xs">
           <button
             type="button"
             onClick={decreaseQty}
             aria-label="Decrease quantity"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-700 transition hover:bg-gray-100"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-700 transition hover:bg-gray-100 cursor-pointer"
           >
             <Minus className="h-4 w-4" />
           </button>
@@ -70,16 +77,17 @@ export default function MenuDetailsActions({ item }: MenuDetailsActionsProps) {
             type="button"
             onClick={increaseQty}
             aria-label="Increase quantity"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-700 transition hover:bg-gray-100"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-700 transition hover:bg-gray-100 cursor-pointer"
           >
             <Plus className="h-4 w-4" />
           </button>
         </div>
 
+        {/* Add to Cart বাটন */}
         <button
           type="button"
           onClick={handleAddToCart}
-          className="inline-flex items-center justify-center gap-2.5 rounded-xl bg-[#D91B24] px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#b8151d]"
+          className="inline-flex items-center justify-center gap-2.5 rounded-xl bg-[#D91B24] px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#b8151d] cursor-pointer"
         >
           <ShoppingCart className="h-4 w-4" />
           <span>Add to Cart</span>

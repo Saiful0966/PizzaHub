@@ -3,8 +3,10 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Heart, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
+import { addToCartStorage } from "@/lib/cart";
 
 interface MenuItem {
   _id: string;
@@ -19,24 +21,26 @@ interface MenuItem {
 const CATEGORIES = ["All", "Pizza", "Sides", "Drinks", "Desserts"];
 
 export default function BrowseMenuPage() {
+  const router = useRouter();
+
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  // controls state
+  // Search, Category, Sort, and Favorite State
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [sortBy, setSortBy] = useState<string>("default");
   const [favorites, setFavorites] = useState<string[]>([]);
 
+  // Load Menu Items from Backend API
   useEffect(() => {
     const fetchMenu = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const apiUrl =
-          process.env.NEXT_PUBLIC_API_URL ;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const res = await fetch(`${apiUrl}/menuitems`);
 
         if (!res.ok) {
@@ -57,6 +61,7 @@ export default function BrowseMenuPage() {
     fetchMenu();
   }, []);
 
+  // Filter List & Category, Search, and Sorting
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
@@ -86,30 +91,46 @@ export default function BrowseMenuPage() {
     return sorted;
   }, [menuItems, searchQuery, selectedCategory, sortBy]);
 
+  //  Favorite Item
   const toggleFavorite = (id: string) => {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
+ // Add Item to Cart, Show Toast, and Redirect to cart Page
   const handleAddToCart = (item: MenuItem) => {
-    toast.success(`${item.name} added to cart!`);
+    addToCartStorage(
+      {
+        _id: item._id,
+        name: item.name || "Menu Item",
+        price: Number(item.price || 0),
+        image: item.image,
+      },
+      1
+    );
+
+    toast.success("Add to Cart Successful");
+
+    router.push("/cart");
   };
 
   return (
     <div className="min-h-screen bg-[#FDF8F5] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Header page */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900"> Find Your Favorite Pizza 🍕 </h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Find Your Favorite Pizza 🍕
+          </h1>
           <p className="text-gray-500 mt-1">
             Find your favorite pizza from the best local restaurants.
           </p>
         </div>
 
-        {/* Filter Bar Search Category Sort*/}
+        {/* Filter Bar: Search, Category, and Sort */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 mb-8">
-          {/*  Search Bar */}
+          {/* Search*/}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -121,7 +142,7 @@ export default function BrowseMenuPage() {
             />
           </div>
 
-          {/* Category Dropdown */}
+          {/* Category */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -135,7 +156,7 @@ export default function BrowseMenuPage() {
             ))}
           </select>
 
-          {/*  Sort By Dropdown */}
+          {/* Sort  */}
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -149,7 +170,7 @@ export default function BrowseMenuPage() {
           </select>
         </div>
 
-        {/* Loading / Error / Empty / Cards Grid */}
+       {/* Loading / Error / Empty State / Menu Card Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -173,7 +194,7 @@ export default function BrowseMenuPage() {
             No menu items found.
           </div>
         ) : (
-          /*  Cards Grid  3 per row */
+          /* Menu Card  3 Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredItems.map((item) => {
               const isFav = favorites.includes(item._id);
@@ -184,6 +205,7 @@ export default function BrowseMenuPage() {
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col justify-between"
                 >
                   <div>
+                    {/*  Link to Details Page */}
                     <Link href={`/browse-menu/${item._id}`} className="block">
                       <div className="h-52 w-full bg-gray-100 overflow-hidden">
                         <img
@@ -196,6 +218,7 @@ export default function BrowseMenuPage() {
 
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-2">
+                        {/* Title Link to Details Page */}
                         <Link
                           href={`/browse-menu/${item._id}`}
                           className="text-lg font-bold text-gray-900 hover:text-red-600 transition line-clamp-1"
@@ -203,6 +226,7 @@ export default function BrowseMenuPage() {
                           {item.name}
                         </Link>
 
+                       {/* // Favorite Button */}
                         <button
                           type="button"
                           onClick={() => toggleFavorite(item._id)}
@@ -217,6 +241,7 @@ export default function BrowseMenuPage() {
                         </button>
                       </div>
 
+                      {/* // Price and Category */}
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-xl font-extrabold text-red-600">
                           ${Number(item.price || 0).toFixed(2)}
@@ -226,6 +251,7 @@ export default function BrowseMenuPage() {
                         </span>
                       </div>
 
+                     {/* Description */}
                       {item.description && (
                         <p className="text-sm text-gray-500 mt-2.5 line-clamp-2">
                           {item.description}
@@ -234,6 +260,7 @@ export default function BrowseMenuPage() {
                     </div>
                   </div>
 
+                  {/* Add to Cart */}
                   <div className="px-4 pb-4">
                     <button
                       type="button"
