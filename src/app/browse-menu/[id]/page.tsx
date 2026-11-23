@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import MenuDetailsActions from "@/components/MenuDetailsActions";
 
+
 export const instant = false;
 
 interface MenuItem {

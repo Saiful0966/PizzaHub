@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { Minus, Plus, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
+import { addToCartStorage } from "@/lib/cart";
+
+
 
 interface MenuDetailsActionsProps {
   item: {
@@ -25,10 +28,24 @@ export default function MenuDetailsActions({ item }: MenuDetailsActionsProps) {
     setQuantity((prev) => prev + 1);
   };
 
-  const handleAddToCart = () => {
-    const itemName = item.title || item.name || "Menu Item";
-    toast.success(`${quantity}x ${itemName} added to cart!`);
-  };
+  // const handleAddToCart = () => {
+  //   const itemName = item.title || item.name || "Menu Item";
+  //   toast.success(`${quantity}x ${itemName} added to cart!`);
+  // };
+
+   const itemTitle = item.title || item.name || "Menu Item";
+    const handleAddToCart = () => {
+  addToCartStorage(
+    {
+      _id: item._id,
+      name: itemTitle,
+      price: Number(item.price || 0),
+      image: item.image,
+    },
+    quantity
+  );
+  toast.success(`${quantity}x ${itemTitle} added to cart!`);
+};
 
   return (
     <div className="mt-7">
