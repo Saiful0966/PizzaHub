@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-// কার্টে যুক্ত করার পর /cart পেজে নিতে useRouter ব্যবহার করা হয়েছে
 import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
@@ -20,24 +19,18 @@ interface MenuDetailsActionsProps {
 
 export default function MenuDetailsActions({ item }: MenuDetailsActionsProps) {
   const router = useRouter();
-
-  // সিলেক্টেড কোয়ান্টিটি স্টেট (ডিফল্ট ১)
   const [quantity, setQuantity] = useState<number>(1);
 
-  // ডেটাবেজে title বা name যে ফিল্ডেই নাম থাকুক তা নেওয়া হচ্ছে
   const itemTitle = item.title || item.name || "Menu Item";
 
-  // কোয়ান্টিটি ১-এর নিচে নামতে না দেওয়ার লজিক
   const decreaseQty = () => {
     setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
   };
 
-  // কোয়ান্টিটি ১ করে বাড়ানোর লজিক
   const increaseQty = () => {
     setQuantity((prev) => prev + 1);
   };
 
-  // localStorage-এ সেভ করে টোস্ট দেখানো এবং /cart পেজে রিডাইরেক্ট করা
   const handleAddToCart = () => {
     addToCartStorage(
       {
@@ -58,7 +51,7 @@ export default function MenuDetailsActions({ item }: MenuDetailsActionsProps) {
       <p className="mb-2.5 text-sm font-bold text-gray-900">Quantity</p>
 
       <div className="flex flex-wrap items-center gap-4">
-        {/* - / quantity / + কন্ট্রোল বক্স */}
+        {/* - / quantity / + */}
         <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-2 py-1.5 shadow-2xs">
           <button
             type="button"
@@ -83,7 +76,7 @@ export default function MenuDetailsActions({ item }: MenuDetailsActionsProps) {
           </button>
         </div>
 
-        {/* Add to Cart বাটন */}
+        {/* Add to Cart */}
         <button
           type="button"
           onClick={handleAddToCart}
