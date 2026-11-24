@@ -590,7 +590,7 @@ const Navbar: React.FC<NavbarProps> = ({
                         </Link>
 
                         <Link
-                          href="/profile-settings"
+                          href="/dashboard/profile"
                           onClick={() => setIsDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-[#D92323] transition-colors"
                         >
