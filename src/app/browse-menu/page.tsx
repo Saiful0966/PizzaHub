@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Search, Heart, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
 import { addToCartStorage } from "@/lib/cart";
+import { authClient } from "@/lib/auth-client";
 
 interface MenuItem {
   _id: string;
@@ -19,9 +20,17 @@ interface MenuItem {
 }
 
 const CATEGORIES = ["All", "Pizza", "Sides", "Drinks", "Desserts"];
+const LOCAL_FAVORITES_KEY = "pizzahub_favorites";
+
+const getCleanApiUrl = () => {
+  const raw = process.env.NEXT_PUBLIC_API_URL || "";
+  return raw.replace(/\/+$/, "");
+};
 
 export default function BrowseMenuPage() {
   const router = useRouter();
+  const { data: session } = authClient.useSession();
+  const userEmail = session?.user?.email || "";
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -40,8 +49,8 @@ export default function BrowseMenuPage() {
         setLoading(true);
         setError("");
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const res = await fetch(`${apiUrl}/menuitems`);
+        const apiUrl = getCleanApiUrl();
+        const res = await fetch(`${apiUrl}/menuitems`, { cache: "no-store" });
 
         if (!res.ok) {
           throw new Error("Failed to load menu items");
@@ -60,6 +69,65 @@ export default function BrowseMenuPage() {
 
     fetchMenu();
   }, []);
+
+  // Load Existing Favorites from Backend / localStorage
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSavedFavorites = async () => {
+      try {
+        const apiUrl = getCleanApiUrl();
+        if (apiUrl) {
+          const query = userEmail
+            ? `?email=${encodeURIComponent(userEmail)}`
+            : "";
+          const res = await fetch(`${apiUrl}/favorites${query}`, {
+            cache: "no-store",
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : [];
+            if (list.length > 0 && isMounted) {
+              const ids = list
+                .map((fav: { itemId?: string; _id?: string }) =>
+                  String(fav.itemId || fav._id || "")
+                )
+                .filter(Boolean);
+              setFavorites(ids);
+              if (typeof window !== "undefined") {
+                localStorage.setItem(LOCAL_FAVORITES_KEY, JSON.stringify(list));
+              }
+              return;
+            }
+          }
+        }
+
+        if (typeof window !== "undefined" && isMounted) {
+          const savedRaw = localStorage.getItem(LOCAL_FAVORITES_KEY);
+          if (savedRaw) {
+            const parsed = JSON.parse(savedRaw);
+            if (Array.isArray(parsed)) {
+              const ids = parsed
+                .map((fav: { itemId?: string; _id?: string; id?: string }) =>
+                  String(fav.itemId || fav._id || fav.id || "")
+                )
+                .filter(Boolean);
+              setFavorites(ids);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Load favorites warning:", err);
+      }
+    };
+
+    loadSavedFavorites();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userEmail]);
 
   // Filter List & Category, Search, and Sorting
   const filteredItems = useMemo(() => {
@@ -91,14 +159,89 @@ export default function BrowseMenuPage() {
     return sorted;
   }, [menuItems, searchQuery, selectedCategory, sortBy]);
 
-  //  Favorite Item
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+  // Favorite Item (Immediate Toast + Backend & localStorage Sync)
+  const toggleFavorite = async (item: MenuItem) => {
+    const id = item._id;
+    const alreadyFav = favorites.includes(id);
+    const apiUrl = getCleanApiUrl();
+
+    const nextIds = alreadyFav
+      ? favorites.filter((favId) => favId !== id)
+      : [...favorites, id];
+
+    setFavorites(nextIds);
+
+    if (alreadyFav) {
+      toast.success("Removed from favorites");
+    } else {
+      toast.success("Added to favorites");
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const currentRaw = localStorage.getItem(LOCAL_FAVORITES_KEY);
+        const currentList: Array<Record<string, unknown>> = currentRaw
+          ? JSON.parse(currentRaw)
+          : [];
+
+        const updatedList = alreadyFav
+          ? currentList.filter(
+              (fav) =>
+                String(fav.itemId || fav._id || fav.id || "") !== String(id)
+            )
+          : [
+              ...currentList.filter(
+                (fav) =>
+                  String(fav.itemId || fav._id || fav.id || "") !== String(id)
+              ),
+              {
+                itemId: item._id,
+                name: item.name,
+                title: item.name,
+                category: item.category,
+                price: Number(item.price || 0),
+                image: item.image,
+                userEmail: userEmail || null,
+              },
+            ];
+
+        localStorage.setItem(LOCAL_FAVORITES_KEY, JSON.stringify(updatedList));
+      } catch (err) {
+        console.warn("Local favorites update warning:", err);
+      }
+    }
+
+    if (apiUrl) {
+      try {
+        if (alreadyFav) {
+          await fetch(
+            `${apiUrl}/favorites/${encodeURIComponent(id)}${
+              userEmail ? `?email=${encodeURIComponent(userEmail)}` : ""
+            }`,
+            { method: "DELETE" }
+          );
+        } else {
+          await fetch(`${apiUrl}/favorites`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userEmail: userEmail || null,
+              itemId: item._id,
+              name: item.name,
+              title: item.name,
+              category: item.category,
+              price: Number(item.price || 0),
+              image: item.image,
+            }),
+          });
+        }
+      } catch (err) {
+        console.warn("Favorite sync warning:", err);
+      }
+    }
   };
 
- // Add Item to Cart, Show Toast, and Redirect to cart Page
+  // Add Item to Cart, Show Toast, and Redirect to cart Page
   const handleAddToCart = (item: MenuItem) => {
     addToCartStorage(
       {
@@ -170,7 +313,7 @@ export default function BrowseMenuPage() {
           </select>
         </div>
 
-       {/* Loading / Error / Empty State / Menu Card Grid */}
+        {/* Loading / Error / Empty State / Menu Card Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -226,12 +369,12 @@ export default function BrowseMenuPage() {
                           {item.name}
                         </Link>
 
-                       {/* // Favorite Button */}
+                        {/* Favorite Button */}
                         <button
                           type="button"
-                          onClick={() => toggleFavorite(item._id)}
+                          onClick={() => toggleFavorite(item)}
                           aria-label="Toggle favorite"
-                          className="text-gray-400 hover:text-red-500 transition shrink-0"
+                          className="text-gray-400 hover:text-red-500 transition shrink-0 cursor-pointer"
                         >
                           <Heart
                             className={`w-5 h-5 ${
@@ -241,7 +384,7 @@ export default function BrowseMenuPage() {
                         </button>
                       </div>
 
-                      {/* // Price and Category */}
+                      {/* Price and Category */}
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-xl font-extrabold text-red-600">
                           ${Number(item.price || 0).toFixed(2)}
@@ -251,7 +394,7 @@ export default function BrowseMenuPage() {
                         </span>
                       </div>
 
-                     {/* Description */}
+                      {/* Description */}
                       {item.description && (
                         <p className="text-sm text-gray-500 mt-2.5 line-clamp-2">
                           {item.description}
