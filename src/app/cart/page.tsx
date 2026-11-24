@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   CartItem,
   getCartItems,
@@ -13,6 +14,7 @@ import {
 const EMPTY_CART: CartItem[] = [];
 let cachedRawCart: string | null = null;
 let cachedCartItems: CartItem[] = EMPTY_CART;
+
 
 function getCartSnapshot(): CartItem[] {
   if (typeof window === "undefined") return EMPTY_CART;
@@ -34,18 +36,22 @@ function subscribeToCart(callback: () => void) {
   };
 }
 
+
 export default function CartPage() {
   const items = useSyncExternalStore(
     subscribeToCart,
     getCartSnapshot,
-    () => EMPTY_CART
+    () => EMPTY_CART,
   );
+
+
+  const router = useRouter();
 
   const updateQty = (id: string, delta: number) => {
     const updated = items.map((item) =>
       item._id === id
         ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-        : item
+        : item,
     );
     saveCartItems(updated);
   };
@@ -56,7 +62,7 @@ export default function CartPage() {
 
   const subtotal = items.reduce(
     (sum, item) => sum + Number(item.price || 0) * item.quantity,
-    0
+    0,
   );
 
   return (
@@ -132,9 +138,16 @@ export default function CartPage() {
               <span>Total</span>
               <span className="text-[#D91B24]">${subtotal.toFixed(2)}</span>
             </div>
-            <button
+            {/* <button
               type="button"
               className="mt-6 w-full rounded-xl bg-[#D91B24] py-3 text-sm font-semibold text-white hover:bg-[#b8151d]"
+            >
+              Proceed to Checkout
+            </button> */}
+            <button
+              type="button"
+              onClick={() => router.push("/checkout")}
+              className="mt-6 w-full rounded-xl bg-[#D91B24] py-3 px-5 text-sm font-semibold text-white hover:bg-[#b8151d] transition cursor-pointer"
             >
               Proceed to Checkout
             </button>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import MenuDetailsActions from "@/components/MenuDetailsActions";
+import UpcomingSection from "@/components/UpcomingSection";
 
 
 export const instant = false;
@@ -116,6 +117,7 @@ async function MenuItemContent({ params }: PageProps) {
 
 export default function MenuDetailsPage({ params }: PageProps) {
   return (
+    <> 
     <Suspense
       fallback={
         <div className="mx-auto max-w-6xl px-4 py-10 text-gray-500">
@@ -125,5 +127,14 @@ export default function MenuDetailsPage({ params }: PageProps) {
     >
       <MenuItemContent params={params} />
     </Suspense>
+
+    
+  {/* <div className="mx-auto mt-8 max-w-5xl px-4 sm:px-6 lg:px-8"> */}
+   <div className="mt-8">
+      {/* <UpcomingSection /> */}
+  </div>
+</>
+ 
   );
+  
 }

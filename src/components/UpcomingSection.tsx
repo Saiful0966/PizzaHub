@@ -18,7 +18,7 @@ interface MenuItem {
   createdAt?: string;
 }
 
-export default function UpcomingMenuSection() {
+export default function UpcomingSection() {
   const router = useRouter();
 
   const [items, setItems] = useState<MenuItem[]>([]);
