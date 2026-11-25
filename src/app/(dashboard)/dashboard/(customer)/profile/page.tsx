@@ -132,7 +132,7 @@ export default function CustomerProfilePage() {
       return;
     }
 
-    const maxSizeBytes = 2 * 1024 * 1024; // 2MB
+    const maxSizeBytes = 2 * 1024 * 1024; 
     if (file.size > maxSizeBytes) {
       toast.error("Image size must be under 2MB");
       return;
@@ -253,7 +253,7 @@ export default function CustomerProfilePage() {
         aria-label="Breadcrumb"
         className="flex items-center gap-2 text-xs font-medium text-gray-500"
       >
-        <Link href="/dashboard" className="hover:text-gray-800 transition">
+        <Link href="/" className="hover:text-gray-800 transition">
           Home
         </Link>
         <span>&gt;</span>

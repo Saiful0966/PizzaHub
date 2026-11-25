@@ -250,8 +250,8 @@ export default function FavoritesPage() {
         aria-label="Breadcrumb"
         className="flex items-center gap-2 text-xs font-medium text-gray-500"
       >
-        <Link href="/dashboard" className="hover:text-gray-800 transition">
-          Home
+        <Link href="/browse-menu" className="hover:text-gray-800 transition">
+          Browse Menu
         </Link>
         <span>&gt;</span>
         <span className="text-[#D91B24] font-semibold">Favorites</span>
