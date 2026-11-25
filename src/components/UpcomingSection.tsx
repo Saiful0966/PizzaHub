@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -15,8 +16,14 @@ interface MenuItem {
   price?: number;
   description?: string;
   image?: string;
+  status?: string;
   createdAt?: string;
 }
+
+const getCleanApiUrl = () => {
+  const raw = process.env.NEXT_PUBLIC_API_URL || "";
+  return raw.replace(/\/+$/, "");
+};
 
 export default function UpcomingSection() {
   const router = useRouter();
@@ -25,20 +32,20 @@ export default function UpcomingSection() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  //  API 
+  // Fetch approved upcoming items from dedicated API
   useEffect(() => {
-    const fetchLatestItems = async () => {
+    const fetchUpcomingItems = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const res = await fetch(`${apiUrl}/menuitems`, {
+        const apiUrl = getCleanApiUrl();
+        const res = await fetch(`${apiUrl}/upcoming-menuitems?limit=6`, {
           cache: "no-store",
         });
 
         if (!res.ok) {
-          throw new Error("Failed to load menu items");
+          throw new Error("Failed to load upcoming menu items");
         }
 
         const rawData = await res.json();
@@ -46,19 +53,11 @@ export default function UpcomingSection() {
           ? rawData
           : rawData?.data || [];
 
-        
-         // Reverse/Sort to Show Newly Added Items First Then Take the First 6
-        const sortedByNewest = [...list].sort((a, b) => {
-          if (a.createdAt && b.createdAt) {
-            return (
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            );
-          }
-          // New Items First
-          return b._id.localeCompare(a._id);
-        });
+        const approvedOnly = list.filter(
+          (item) => String(item?.status || "").trim().toLowerCase() === "approved"
+        );
 
-        setItems(sortedByNewest.slice(0, 6));
+        setItems(approvedOnly.slice(0, 6));
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : "Something went wrong!"
@@ -68,7 +67,7 @@ export default function UpcomingSection() {
       }
     };
 
-    fetchLatestItems();
+    fetchUpcomingItems();
   }, []);
 
   // Add Item to Cart, Show Toast, and Redirect to /cart Page
@@ -91,7 +90,7 @@ export default function UpcomingSection() {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header  Section */}
+      {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#D92323] bg-red-50 px-3 py-1 rounded-full mb-2">
@@ -99,10 +98,10 @@ export default function UpcomingSection() {
             <span>Fresh From Kitchen</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Upcoming & Latest Menu
+            Upcoming  Menu
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Newly added items from our menu, updated live.
+            Newly added items from our menu.
           </p>
         </div>
 
@@ -138,7 +137,7 @@ export default function UpcomingSection() {
           No upcoming menu items available right now.
         </div>
       ) : (
-      /* 6 Dynamic Card Grid 3 Cards per Row */
+        /* 6 Dynamic Card Grid 3 Cards  */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item) => {
             const itemTitle = item.title || item.name || "Delicious Item";
@@ -149,7 +148,7 @@ export default function UpcomingSection() {
                 className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col justify-between"
               >
                 <div>
-                  {/* Details Page link  */}
+                  {/* Details Page Link */}
                   <Link href={`/browse-menu/${item._id}`} className="block">
                     <div className="h-48 w-full bg-gray-100 overflow-hidden">
                       <img
@@ -162,7 +161,6 @@ export default function UpcomingSection() {
 
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2">
-
                       <Link
                         href={`/browse-menu/${item._id}`}
                         className="text-lg font-bold text-gray-900 hover:text-[#D92323] transition line-clamp-1"

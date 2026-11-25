@@ -16,6 +16,7 @@ interface MenuItem {
   price: number;
   description?: string;
   image: string;
+  status?: string;
   createdAt?: string;
 }
 
@@ -25,6 +26,10 @@ const LOCAL_FAVORITES_KEY = "pizzahub_favorites";
 const getCleanApiUrl = () => {
   const raw = process.env.NEXT_PUBLIC_API_URL || "";
   return raw.replace(/\/+$/, "");
+};
+
+const isApprovedItem = (item: MenuItem) => {
+  return String(item.status || "").trim().toLowerCase() === "approved";
 };
 
 export default function BrowseMenuPage() {
@@ -42,7 +47,7 @@ export default function BrowseMenuPage() {
   const [sortBy, setSortBy] = useState<string>("default");
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  // Load Menu Items from Backend API
+  // Load Only Approved Menu Items from Backend API
   useEffect(() => {
     const fetchMenu = async () => {
       try {
@@ -50,14 +55,19 @@ export default function BrowseMenuPage() {
         setError("");
 
         const apiUrl = getCleanApiUrl();
-        const res = await fetch(`${apiUrl}/menuitems`, { cache: "no-store" });
+        const res = await fetch(`${apiUrl}/menuitems?approvedOnly=true`, {
+          cache: "no-store",
+        });
 
         if (!res.ok) {
           throw new Error("Failed to load menu items");
         }
 
         const data: MenuItem[] = await res.json();
-        setMenuItems(Array.isArray(data) ? data : []);
+        const approvedOnly = Array.isArray(data)
+          ? data.filter(isApprovedItem)
+          : [];
+        setMenuItems(approvedOnly);
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : "Something went wrong!"
@@ -129,11 +139,13 @@ export default function BrowseMenuPage() {
     };
   }, [userEmail]);
 
-  // Filter List & Category, Search, and Sorting
+  // Filter List & Category, Search, and Sorting (Strictly Approved Items Only)
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
     const filtered = menuItems.filter((item) => {
+      if (!isApprovedItem(item)) return false;
+
       const matchesCategory =
         selectedCategory === "All" ||
         item.category?.toLowerCase() === selectedCategory.toLowerCase();
